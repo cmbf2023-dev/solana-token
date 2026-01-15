@@ -14,15 +14,12 @@ export default defineConfig({
   ],
    resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // Points to project root
-      buffer: 'buffer/',
+      '@': path.resolve(__dirname, './src'), // Points to project root      
+      'node:buffer': 'buffer',
     },
     
   },
   build: {
     target: 'es2020',
-    rollupOptions: {
-      external: ['buffer'],
-    },
   },
 })

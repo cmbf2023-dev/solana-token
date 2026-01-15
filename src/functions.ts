@@ -21,9 +21,10 @@ import {
   Program,
 } from "@anchor-lang/core";
 import {  BN } from "@coral-xyz/anchor";
-import { Buffer } from "buffer";
+//import { Buffer } from "node_modules/buffer/index.js";
 //import type { IdlInstruction, IdlAccount, IdlTypeDef } from "@coral-xyz/anchor/dist/cjs/idl";
 import type { Wallet } from "@coral-xyz/anchor/dist/cjs/provider";
+const Buffer = globalThis.Buffer;
 
 // ========== CONFIGURATION ==========
 const STEALTH_PROGRAM_ID = new PublicKey('2gHYoSiAc88SazwLCg12uqSQPVecqF67JW8v3ZMQY6RS');
