@@ -99,7 +99,7 @@ function createStealthTransferInstruction(
   });
 }
 
-function createCloseVaultInstruction(
+/*function createCloseVaultInstruction(
   owner: PublicKey,
   vaultPda: PublicKey
 ): TransactionInstruction {
@@ -114,7 +114,7 @@ function createCloseVaultInstruction(
     ],
     data
   });
-}
+}*/
 
 export async function sweepAllHidden(
   publicKey: PublicKey,

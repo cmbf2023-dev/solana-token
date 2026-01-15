@@ -55,7 +55,7 @@ export class AtomicTransactionBuilder {
    */
   addStealthTransfer(owner: PublicKey, vaultPda: PublicKey, recipient: PublicKey, amount: number, memo?: string): this {
     const lamports = Math.floor(amount * LAMPORTS_PER_SOL)
-
+    console.log(owner,memo)
     // Create transfer from vault to recipient
     const instruction = SystemProgram.transfer({
       fromPubkey: vaultPda,
@@ -74,7 +74,7 @@ export class AtomicTransactionBuilder {
    */
   addCloseVault(owner: PublicKey, vaultPda: PublicKey): this {
     // Transfer remaining balance back to owner and mark vault as closed
-    console.log("[v0] Added close vault instruction")
+    console.log("[v0] Added close vault instruction", owner, vaultPda)
     return this
   }
 

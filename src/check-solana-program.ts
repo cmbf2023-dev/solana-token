@@ -1,4 +1,4 @@
-import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 // Your deployed program ID from the console
 const PROGRAM_ID = new PublicKey("2WaTn2ATgtiDraS2TKuLaVnA2bJFdPUGCpchkkXxw46J");
