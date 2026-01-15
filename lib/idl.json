@@ -1,0 +1,177 @@
+{
+  "version": "0.1.0",
+  "name": "stealth_program",
+  "instructions": [
+    {
+      "name": "initVault",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "accounts": [
+        {
+          "name": "depositor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "stealthTransfer",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "recipient",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "encryptedMemo",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "closeVault",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "createDecoy",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "StealthVault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "seed",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "VaultInactive",
+      "msg": "Vault is not active"
+    },
+    {
+      "code": 6001,
+      "name": "NotOwner",
+      "msg": "Not the owner"
+    },
+    {
+      "code": 6002,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds"
+    },
+    {
+      "code": 6003,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    }
+  ]
+}
